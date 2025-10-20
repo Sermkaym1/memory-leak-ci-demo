@@ -42,14 +42,13 @@ def ensure_services_running():
     """
     Убеждаемся что все сервисы запущены перед тестами
     УМНАЯ проверка - не ждет фиксированное время, а проверяет готовность
+    Поддерживает CI окружения где контейнеры могут иметь префиксы
     """
     print("\n🔍 Проверка Docker сервисов...")
     
     required_containers = [
         'app-with-leak',
-        'app-without-leak',
-        'postgres-leak-demo',
-        'redis-leak-demo'
+        'app-without-leak'
     ]
     
     # Проверяем и запускаем контейнеры
@@ -63,7 +62,29 @@ def ensure_services_running():
             else:
                 print(f"✅ {container_name} уже работает")
         except docker.errors.NotFound:
-            pytest.fail(f"❌ Контейнер {container_name} не найден. Запустите: docker-compose up -d")
+            # В CI контейнеры могут иметь префиксы проекта
+            print(f"⚠️  Контейнер {container_name} не найден по точному имени")
+            print("🔍 Поищем контейнеры с похожими именами...")
+            
+            # Ищем контейнеры с похожими именами
+            all_containers = docker_client.containers.list(all=True)
+            found = False
+            for c in all_containers:
+                if container_name in c.name or any(container_name in tag for tag in c.image.tags):
+                    print(f"🎯 Найден похожий контейнер: {c.name} (статус: {c.status})")
+                    if c.status != 'running':
+                        print(f"⚠️  Запускаю {c.name}...")
+                        c.start()
+                        time.sleep(2)
+                    found = True
+                    break
+            
+            if not found:
+                print(f"❌ Контейнер с именем {container_name} не найден!")
+                print("📋 Доступные контейнеры:")
+                for c in all_containers:
+                    print(f"  - {c.name} ({c.status})")
+                print("\n💡 Запустите: docker compose up -d app-with-leak app-without-leak")
     
     # Умная проверка готовности сервисов через HTTP
     print("\n🎯 УМНАЯ ПРОВЕРКА готовности сервисов (без лишних ожиданий):")
@@ -89,8 +110,22 @@ def app_with_leak_container(ensure_services_running) -> Generator:
     """
     Fixture для контейнера с утечкой памяти
     БЕЗ перезапуска - используем уже готовый контейнер
+    Поддерживает поиск контейнеров с префиксами проекта
     """
-    container = docker_client.containers.get('app-with-leak')
+    container = None
+    try:
+        container = docker_client.containers.get('app-with-leak')
+    except docker.errors.NotFound:
+        # Ищем контейнер с похожим именем
+        all_containers = docker_client.containers.list(all=True)
+        for c in all_containers:
+            if 'app-with-leak' in c.name or 'app_with_leak' in c.name:
+                container = c
+                break
+        
+        if not container:
+            pytest.fail("❌ Контейнер app-with-leak не найден")
+    
     print(f"🔴 Используем контейнер {container.name} (С УТЕЧКОЙ)")
     
     # Проверяем что контейнер здоров, без перезапуска
@@ -110,8 +145,22 @@ def app_without_leak_container(ensure_services_running) -> Generator:
     """
     Fixture для контейнера без утечки памяти
     БЕЗ перезапуска - используем уже готовый контейнер
+    Поддерживает поиск контейнеров с префиксами проекта
     """
-    container = docker_client.containers.get('app-without-leak')
+    container = None
+    try:
+        container = docker_client.containers.get('app-without-leak')
+    except docker.errors.NotFound:
+        # Ищем контейнер с похожим именем
+        all_containers = docker_client.containers.list(all=True)
+        for c in all_containers:
+            if 'app-without-leak' in c.name or 'app_without_leak' in c.name:
+                container = c
+                break
+        
+        if not container:
+            pytest.fail("❌ Контейнер app-without-leak не найден")
+    
     print(f"🟢 Используем контейнер {container.name} (БЕЗ УТЕЧКИ)")
     
     # Проверяем что контейнер здоров, без перезапуска

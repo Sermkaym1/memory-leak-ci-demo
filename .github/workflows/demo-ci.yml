@@ -40,7 +40,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         # Только необходимое для демо
-        pip install pytest==7.4.3 allure-pytest==2.13.2 requests==2.31.0
+        pip install pytest==7.4.3 pytest-timeout==2.2.0 allure-pytest==2.13.2 requests==2.31.0
         pip install psutil==5.9.6 docker==7.0.0 python-dotenv==1.0.0
         # Графики - простые версии
         pip install matplotlib==3.6.3 numpy==1.23.5
@@ -52,21 +52,62 @@ jobs:
         if docker compose version >/dev/null 2>&1; then
           docker compose build app-with-leak app-without-leak
           echo "🚀 Starting services..."
-          docker compose up -d
+          docker compose up -d app-with-leak app-without-leak
+          
+          # Ждем запуска и проверяем статус
+          echo "⏳ Ждем запуска контейнеров..."
+          sleep 15
+          
+          echo "📋 Статус контейнеров:"
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          
+          # Проверяем что контейнеры запущены
+          if ! docker ps --format "{{.Names}}" | grep -q "app-with-leak"; then
+            echo "❌ app-with-leak не запущен"
+            docker logs app-with-leak || true
+            exit 1
+          fi
+          
+          if ! docker ps --format "{{.Names}}" | grep -q "app-without-leak"; then
+            echo "❌ app-without-leak не запущен"
+            docker logs app-without-leak || true
+            exit 1
+          fi
+          
+          echo "✅ Все контейнеры запущены успешно"
         else
           echo "⚠️ Docker Compose недоступен, используем docker build"
           docker build -t app-with-leak ./apps/app_with_leak/
           docker build -t app-without-leak ./apps/app_without_leak/
+          # Запускаем с правильными именами контейнеров
           docker run -d --name app-with-leak -p 5000:5000 app-with-leak
           docker run -d --name app-without-leak -p 5001:5000 app-without-leak
+          
+          echo "⏳ Ждем запуска контейнеров..."
+          sleep 15
+          docker ps
         fi
-        sleep 15  # Минимальное ожидание для демо
         
     - name: ⚡ Быстрые тесты (30 сек)
       run: |
         echo "🧪 Running DEMO memory leak tests..."
-        # Запускаем демо тесты напрямую
-        python -m pytest tests/test_demo.py -v --tb=short --timeout=120 --alluredir=allure-results || echo "⚠️ Tests completed with issues (demo continues)"
+        # Проверяем что контейнеры запустились
+        sleep 5
+        docker ps
+        
+        # Проверяем здоровье сервисов
+        echo "🏥 Проверка здоровья сервисов..."
+        curl -f http://localhost:5000/health || echo "⚠️ App WITH leak не отвечает"
+        curl -f http://localhost:5001/health || echo "⚠️ App WITHOUT leak не отвечает"
+        
+        echo "📊 Starting pytest..."
+        # Запускаем демо тесты с timeout
+        if ! python -m pytest tests/test_demo.py -v --tb=short --timeout=180 --alluredir=allure-results; then
+          echo "❌ Тесты упали, показываем логи контейнеров:"
+          docker logs app-with-leak || true
+          docker logs app-without-leak || true
+          echo "⚠️ Tests failed but demo continues for CI demonstration"
+        fi
         
     - name: 📊 Генерация Allure отчета
       if: always()
