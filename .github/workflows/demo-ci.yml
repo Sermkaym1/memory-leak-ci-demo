@@ -48,29 +48,25 @@ jobs:
     - name: 🔨 Быстрая сборка сервисов
       run: |
         echo "🔨 Building demo apps..."
-        docker-compose build app-with-leak app-without-leak
-        echo "🚀 Starting services..."
-        docker-compose up -d
+        # Проверяем доступность docker compose
+        if docker compose version >/dev/null 2>&1; then
+          docker compose build app-with-leak app-without-leak
+          echo "🚀 Starting services..."
+          docker compose up -d
+        else
+          echo "⚠️ Docker Compose недоступен, используем docker build"
+          docker build -t app-with-leak ./apps/app_with_leak/
+          docker build -t app-without-leak ./apps/app_without_leak/
+          docker run -d --name app-with-leak -p 5000:5000 app-with-leak
+          docker run -d --name app-without-leak -p 5001:5000 app-without-leak
+        fi
         sleep 15  # Минимальное ожидание для демо
         
     - name: ⚡ Быстрые тесты (30 сек)
       run: |
         echo "🧪 Running DEMO memory leak tests..."
-        # Создаем короткую версию тестов
-        python -c "
-        import sys, os
-        sys.path.append('tests')
-        from tests.test_quick_demo import TestQuickDemo
-        from tests.conftest import *
-        import pytest
-        
-        # Запускаем только быстрые тесты с timeout
-        pytest.main([
-          'tests/test_quick_demo.py::TestQuickDemo::test_app_with_leak_1min',
-          '-v', '--tb=short', '--timeout=120',
-          '--alluredir=allure-results'
-        ])
-        " || echo "⚠️ Tests completed with issues (demo continues)"
+        # Запускаем демо тесты напрямую
+        python -m pytest tests/test_demo.py -v --tb=short --timeout=120 --alluredir=allure-results || echo "⚠️ Tests completed with issues (demo continues)"
         
     - name: 📊 Генерация Allure отчета
       if: always()
@@ -101,7 +97,13 @@ jobs:
           
     - name: 🧹 Cleanup
       if: always()
-      run: docker-compose down -v
+      run: |
+        if docker compose version >/dev/null 2>&1; then
+          docker compose down -v
+        else
+          docker stop app-with-leak app-without-leak || true
+          docker rm app-with-leak app-without-leak || true
+        fi
 
   # ==========================================
   # DEMO: Grafana Dashboard (опционально)
@@ -118,7 +120,11 @@ jobs:
     - name: 🔨 Setup Monitoring Stack
       run: |
         echo "🔨 Building monitoring stack..."
-        docker-compose -f docker-compose.yml up -d prometheus grafana
+        if docker compose version >/dev/null 2>&1; then
+          docker compose -f docker-compose.yml up -d prometheus grafana
+        else
+          echo "⚠️ Docker Compose недоступен, пропускаем мониторинг"
+        fi
         sleep 10
         
     - name: 📊 Grafana Info
@@ -130,7 +136,13 @@ jobs:
         
     - name: 🧹 Cleanup Monitoring
       if: always()
-      run: docker-compose down -v
+      run: |
+        if docker compose version >/dev/null 2>&1; then
+          docker compose down -v
+        else
+          docker stop prometheus grafana || true
+          docker rm prometheus grafana || true
+        fi
 
   # ==========================================
   # DEMO: Результаты и статус
