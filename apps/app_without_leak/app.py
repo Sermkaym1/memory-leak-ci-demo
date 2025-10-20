@@ -17,13 +17,11 @@ app = Flask(__name__)
 # ========================================
 # ✅ ПРАВИЛЬНО: Cache с лимитом и TTL
 # ========================================
-# Использует cachetools с максимальным размером и временем жизни
-CACHE = TTLCache(maxsize=100, ttl=300)  # 100 элементов, 5 минут TTL
+CACHE = TTLCache(maxsize=100, ttl=300)
 
 # ========================================
 # ✅ ПРАВИЛЬНО: Connection Pool для БД
 # ========================================
-# Переиспользуем соединения вместо создания новых
 DB_POOL = None
 
 def init_db_pool():
@@ -57,7 +55,6 @@ def get_redis_client():
         )
     return REDIS_CLIENT
 
-# Закрываем ресурсы при остановке
 atexit.register(close_db_pool)
 
 
@@ -69,13 +66,10 @@ def health():
 
 @app.route('/api/cache', methods=['POST'])
 def cache_data():
-    """
-    ✅ ПРАВИЛЬНО: Cache с автоочисткой
-    """
+    """✅ ПРАВИЛЬНО: Cache с автоочисткой"""
     data = request.json
     key = data.get('key', f'key_{len(CACHE)}')
     
-    # ✅ TTLCache автоматически удаляет старые записи
     CACHE[key] = {
         'data': data.get('value', 'x' * 1000),
         'timestamp': datetime.now()
@@ -91,17 +85,13 @@ def cache_data():
 
 @app.route('/api/database', methods=['GET'])
 def database_query():
-    """
-    ✅ ПРАВИЛЬНО: Использование connection pool
-    """
+    """✅ ПРАВИЛЬНО: Использование connection pool"""
     if DB_POOL is None:
         init_db_pool()
     
     conn = None
     try:
-        # ✅ Берем соединение из пула
         conn = DB_POOL.getconn()
-        
         cursor = conn.cursor()
         cursor.execute("SELECT version();")
         result = cursor.fetchone()
@@ -117,20 +107,16 @@ def database_query():
         return jsonify({"error": str(e)}), 500
         
     finally:
-        # ✅ ВАЖНО: Возвращаем соединение в пул
         if conn:
             DB_POOL.putconn(conn)
 
 
 @app.route('/api/file', methods=['POST'])
 def write_file():
-    """
-    ✅ ПРАВИЛЬНО: Context manager для файлов
-    """
+    """✅ ПРАВИЛЬНО: Context manager для файлов"""
     data = request.json
     filename = f"/tmp/noleak_{datetime.now().timestamp()}.txt"
     
-    # ✅ Context manager автоматически закрывает файл
     with open(filename, 'w') as f:
         f.write(data.get('content', 'test data\n' * 100))
     
@@ -142,20 +128,15 @@ def write_file():
 
 @app.route('/api/redis', methods=['POST'])
 def redis_cache():
-    """
-    ✅ ПРАВИЛЬНО: Переиспользуем Redis client
-    """
+    """✅ ПРАВИЛЬНО: Переиспользуем Redis client"""
     try:
         data = request.json
-        
-        # ✅ Используем singleton client с connection pool
         r = get_redis_client()
         
         key = data.get('key', f'redis_key_{datetime.now().timestamp()}')
         value = data.get('value', 'x' * 10000)
         
-        # ✅ Устанавливаем TTL для ключа
-        r.setex(key, 300, value)  # 5 минут TTL
+        r.setex(key, 300, value)
         result = r.get(key)
         
         return jsonify({
@@ -171,17 +152,13 @@ def redis_cache():
 
 @app.route('/api/stress')
 def stress_test():
-    """
-    Комбинированный endpoint - все ресурсы управляются правильно
-    """
+    """Комбинированный endpoint - все ресурсы управляются правильно"""
     results = []
     
-    # Cache с автоочисткой
     for i in range(10):
         CACHE[f'stress_{i}'] = 'x' * 10000
     results.append(f"Cache size: {len(CACHE)}/{CACHE.maxsize}")
     
-    # DB Connection pool
     if DB_POOL is None:
         init_db_pool()
     
@@ -196,7 +173,6 @@ def stress_test():
     except:
         results.append("DB connection failed")
     
-    # Файлы с context manager
     for i in range(5):
         with open(f'/tmp/stress_noleak_{i}.txt', 'w') as f:
             f.write('no leak' * 1000)
