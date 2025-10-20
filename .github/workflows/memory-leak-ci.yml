@@ -338,9 +338,6 @@ jobs:
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "🔴 Memory Leak CI Failed: ${{ github.repository }}"
         to: ${{ secrets.EMAIL_TO }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "🔴 Memory Leak CI Failed: ${{ github.repository }}"
-        to: ${{ secrets.EMAIL_TO }}
         from: Memory Leak CI
         body: |
           Обнаружена ошибка в Memory Leak Detection CI
