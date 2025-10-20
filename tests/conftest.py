@@ -5,16 +5,43 @@ import pytest
 import docker
 import time
 import os
+import requests
 from typing import Generator
 
 # Инициализация Docker клиента
 docker_client = docker.from_env()
 
 
+def wait_for_service_health(url: str, service_name: str, max_wait: int = 60) -> bool:
+    """
+    Умная проверка готовности сервиса через HTTP healthcheck
+    Возвращает True как только сервис отвечает, не ждет фиксированное время
+    """
+    print(f"🔍 Проверяю готовность {service_name} на {url}")
+    start_time = time.time()
+    
+    while time.time() - start_time < max_wait:
+        try:
+            response = requests.get(url, timeout=2)
+            if response.status_code == 200:
+                elapsed = time.time() - start_time
+                print(f"✅ {service_name} готов за {elapsed:.1f} сек")
+                return True
+        except requests.exceptions.RequestException:
+            pass
+        
+        print(f"⏳ {service_name} еще не готов, жду... ({int(time.time() - start_time)}с)")
+        time.sleep(2)
+    
+    print(f"❌ {service_name} не готов за {max_wait} сек")
+    return False
+
+
 @pytest.fixture(scope="session")
 def ensure_services_running():
     """
     Убеждаемся что все сервисы запущены перед тестами
+    УМНАЯ проверка - не ждет фиксированное время, а проверяет готовность
     """
     print("\n🔍 Проверка Docker сервисов...")
     
@@ -25,58 +52,78 @@ def ensure_services_running():
         'redis-leak-demo'
     ]
     
+    # Проверяем и запускаем контейнеры
     for container_name in required_containers:
         try:
             container = docker_client.containers.get(container_name)
             if container.status != 'running':
                 print(f"⚠️  {container_name} не запущен, запускаю...")
                 container.start()
-                time.sleep(5)
+                time.sleep(2)  # Минимальная пауза для старта
             else:
-                print(f"✅ {container_name} работает")
+                print(f"✅ {container_name} уже работает")
         except docker.errors.NotFound:
             pytest.fail(f"❌ Контейнер {container_name} не найден. Запустите: docker-compose up -d")
     
-    # Ждем готовности сервисов
-    print("⏳ Ожидание готовности сервисов (30 сек)...")
-    time.sleep(30)
-    print("✅ Все сервисы готовы\n")
+    # Умная проверка готовности сервисов через HTTP
+    print("\n🎯 УМНАЯ ПРОВЕРКА готовности сервисов (без лишних ожиданий):")
+    
+    services_to_check = [
+        ("http://localhost:5000/health", "App WITH leak"),
+        ("http://localhost:5001/health", "App WITHOUT leak")
+    ]
+    
+    all_ready = True
+    for url, name in services_to_check:
+        if not wait_for_service_health(url, name, max_wait=30):
+            all_ready = False
+    
+    if not all_ready:
+        pytest.fail("❌ Не все сервисы готовы к тестированию")
+    
+    print("🚀 ВСЕ СЕРВИСЫ ГОТОВЫ! Запускаем тесты...\n")
 
 
 @pytest.fixture
 def app_with_leak_container(ensure_services_running) -> Generator:
     """
     Fixture для контейнера с утечкой памяти
+    БЕЗ перезапуска - используем уже готовый контейнер
     """
     container = docker_client.containers.get('app-with-leak')
+    print(f"🔴 Используем контейнер {container.name} (С УТЕЧКОЙ)")
     
-    # Перезапускаем контейнер для чистого состояния
-    print("🔄 Перезапуск app-with-leak для чистого теста...")
-    container.restart()
-    time.sleep(10)
+    # Проверяем что контейнер здоров, без перезапуска
+    if not wait_for_service_health("http://localhost:5000/health", "App WITH leak", max_wait=10):
+        print("⚠️  Сервис не отвечает, попробуем перезапустить...")
+        container.restart()
+        wait_for_service_health("http://localhost:5000/health", "App WITH leak", max_wait=20)
     
     yield container
     
-    # Cleanup
-    print("🧹 Очистка после теста...")
+    # Cleanup - просто логируем
+    print("✅ Тест с утечкой завершен")
 
 
 @pytest.fixture
 def app_without_leak_container(ensure_services_running) -> Generator:
     """
     Fixture для контейнера без утечки памяти
+    БЕЗ перезапуска - используем уже готовый контейнер
     """
     container = docker_client.containers.get('app-without-leak')
+    print(f"🟢 Используем контейнер {container.name} (БЕЗ УТЕЧКИ)")
     
-    # Перезапускаем контейнер для чистого состояния
-    print("🔄 Перезапуск app-without-leak для чистого теста...")
-    container.restart()
-    time.sleep(10)
+    # Проверяем что контейнер здоров, без перезапуска
+    if not wait_for_service_health("http://localhost:5001/health", "App WITHOUT leak", max_wait=10):
+        print("⚠️  Сервис не отвечает, попробуем перезапустить...")
+        container.restart()
+        wait_for_service_health("http://localhost:5001/health", "App WITHOUT leak", max_wait=20)
     
     yield container
     
-    # Cleanup
-    print("🧹 Очистка после теста...")
+    # Cleanup - просто логируем
+    print("✅ Тест без утечки завершен")
 
 
 def pytest_configure(config):

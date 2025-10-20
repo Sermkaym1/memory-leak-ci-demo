@@ -38,9 +38,16 @@ class TestQuickDemo:
                 attachment_type=allure.attachment_type.TEXT
             )
         
-        with allure.step(f"Нагрузка {duration} секунд"):
+        with allure.step(f"🚀 ГЕНЕРАЦИЯ НАГРУЗКИ {duration} секунд"):
             memory_data = []
             start_time = time.time()
+            
+            print(f"\n{'='*60}")
+            print(f"🎯 НАЧИНАЕМ БЫСТРЫЙ ТЕСТ С УТЕЧКОЙ")
+            print(f"⏱️  Длительность: {duration} секунд ({duration//60} мин {duration%60} сек)")
+            print(f"🌐 URL: {base_url}")
+            print(f"🔥 RPS: 3 запроса/сек")
+            print(f"{'='*60}\n")
             
             load_gen.start(
                 endpoints=['/api/cache', '/api/stress'],
@@ -48,9 +55,11 @@ class TestQuickDemo:
                 duration=duration
             )
             
+            measurement_count = 0
             while time.time() - start_time < duration:
                 mem = monitor.get_current_memory()
                 elapsed = time.time() - start_time
+                measurement_count += 1
                 
                 memory_data.append({
                     'time': elapsed,
@@ -59,12 +68,25 @@ class TestQuickDemo:
                     'percent': mem['percent']
                 })
                 
-                if int(elapsed) % 60 == 0:
-                    print(f"⏱️  {int(elapsed/60)} мин: RSS={mem['rss_mb']:.2f} MB")
+                # УЛУЧШЕННАЯ НАБЛЮДАЕМОСТЬ - каждые 30 сек показываем прогресс
+                if int(elapsed) % 30 == 0 or elapsed < 30:
+                    progress = (elapsed / duration) * 100
+                    remaining = duration - elapsed
+                    print(f"📊 [{progress:5.1f}%] "
+                          f"⏱️ {int(elapsed):3d}с/{duration}с "
+                          f"📈 RSS: {mem['rss_mb']:6.1f} MB "
+                          f"💾 VMS: {mem['vms_mb']:6.1f} MB "
+                          f"⏳ Осталось: {int(remaining):3d}с "
+                          f"📏 Измерений: {measurement_count}")
                 
-                time.sleep(10)  # Реже собираем данные
+                time.sleep(10)  # Собираем данные каждые 10 сек
             
             load_gen.stop()
+            
+            print(f"\n🏁 ТЕСТ ЗАВЕРШЕН!")
+            print(f"📊 Всего измерений: {len(memory_data)}")
+            print(f"⏱️  Общее время: {elapsed:.1f} сек")
+            print("="*60)
         
         with allure.step("Анализ"):
             final_memory = monitor.get_current_memory()
@@ -112,9 +134,16 @@ class TestQuickDemo:
         with allure.step("Начало быстрого теста"):
             initial_memory = monitor.get_current_memory()
         
-        with allure.step(f"Нагрузка {duration} секунд"):
+        with allure.step(f"🚀 ГЕНЕРАЦИЯ НАГРУЗКИ {duration} секунд"):
             memory_data = []
             start_time = time.time()
+            
+            print(f"\n{'='*60}")
+            print(f"🎯 НАЧИНАЕМ БЫСТРЫЙ ТЕСТ БЕЗ УТЕЧКИ")
+            print(f"⏱️  Длительность: {duration} секунд ({duration//60} мин {duration%60} сек)")
+            print(f"🌐 URL: {base_url}")
+            print(f"🔥 RPS: 3 запроса/сек")
+            print(f"{'='*60}\n")
             
             load_gen.start(
                 endpoints=['/api/cache', '/api/stress'],
@@ -122,9 +151,11 @@ class TestQuickDemo:
                 duration=duration
             )
             
+            measurement_count = 0
             while time.time() - start_time < duration:
                 mem = monitor.get_current_memory()
                 elapsed = time.time() - start_time
+                measurement_count += 1
                 
                 memory_data.append({
                     'time': elapsed,
@@ -133,12 +164,25 @@ class TestQuickDemo:
                     'percent': mem['percent']
                 })
                 
-                if int(elapsed) % 60 == 0:
-                    print(f"⏱️  {int(elapsed/60)} мин: RSS={mem['rss_mb']:.2f} MB")
+                # УЛУЧШЕННАЯ НАБЛЮДАЕМОСТЬ - каждые 30 сек показываем прогресс
+                if int(elapsed) % 30 == 0 or elapsed < 30:
+                    progress = (elapsed / duration) * 100
+                    remaining = duration - elapsed
+                    print(f"📊 [{progress:5.1f}%] "
+                          f"⏱️ {int(elapsed):3d}с/{duration}с "
+                          f"📈 RSS: {mem['rss_mb']:6.1f} MB "
+                          f"💾 VMS: {mem['vms_mb']:6.1f} MB "
+                          f"⏳ Осталось: {int(remaining):3d}с "
+                          f"📏 Измерений: {measurement_count}")
                 
                 time.sleep(10)
             
             load_gen.stop()
+            
+            print(f"\n🏁 ТЕСТ ЗАВЕРШЕН!")
+            print(f"📊 Всего измерений: {len(memory_data)}")
+            print(f"⏱️  Общее время: {elapsed:.1f} сек")
+            print("="*60)
         
         with allure.step("Анализ"):
             final_memory = monitor.get_current_memory()
