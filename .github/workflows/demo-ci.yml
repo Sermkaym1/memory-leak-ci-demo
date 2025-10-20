@@ -8,11 +8,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write    # Нужно для push в gh-pages
   checks: write
   pull-requests: write
   pages: write
   id-token: write
+  actions: read
 
 env:
   DOCKER_BUILDKIT: 1
@@ -118,23 +119,50 @@ jobs:
         gh_pages: gh-pages
         allure_history: allure-history
         
-    - name: 🚀 Deploy Allure Report
+    - name: 🚀 Deploy Allure Report to GitHub Pages
       if: always()
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: allure-history
         destination_dir: allure-report
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+      continue-on-error: true
+      
+    - name: 📊 Fallback - Show Report Info
+      if: always()
+      run: |
+        echo "📊 Allure отчет готов!"
+        echo "📁 Файлы отчета:"
+        ls -la allure-history/ || echo "Папка allure-history не найдена"
+        echo ""
+        echo "🌐 Отчет будет доступен по адресу:"
+        echo "https://sermkaym1.github.io/memory-leak-ci-demo/allure-report/"
+        echo ""
+        echo "💡 Если ссылка не работает, отчет доступен в артефактах CI"
         
-    - name: 📈 Upload Test Results
+    - name: 📈 Upload Test Results & Reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: demo-results
+        name: demo-allure-report
         path: |
           allure-results/
+          allure-history/
           allure-report/
+        retention-days: 30
+        
+    - name: 📈 Upload Memory Graphs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: memory-graphs
+        path: |
           tests/allure-results/*.png
+          *.png
+        retention-days: 30
           
     - name: 🧹 Cleanup
       if: always()
