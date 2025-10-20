@@ -74,7 +74,7 @@ jobs:
           --junitxml=quick-test-results.xml
           
     - name: 📊 Upload Allure результаты
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: allure-results-quick
@@ -135,7 +135,7 @@ jobs:
           --junitxml=full-test-results.xml
           
     - name: 📊 Upload Allure результаты
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: allure-results-full
@@ -221,7 +221,7 @@ jobs:
         tail -20 no-leak-app-results.txt
         
     - name: 📊 Upload результаты производительности
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: |
@@ -252,7 +252,7 @@ jobs:
         bandit -r apps/ tests/ -f json -o bandit-report.json || true
         
     - name: 📊 Upload результаты безопасности
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports

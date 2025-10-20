@@ -5,7 +5,7 @@
 import pytest
 import allure
 import time
-from tests.utils.memory_monitor import MemoryMonitor
+from tests.utils.enhanced_monitor import EnhancedMemoryMonitor
 from tests.utils.load_generator import LoadGenerator
 from tests.utils.report_builder import ReportBuilder
 
@@ -25,7 +25,7 @@ class TestQuickDemo:
         duration = 300  # 5 минут
         base_url = "http://localhost:5000"
         
-        monitor = MemoryMonitor(container)
+        monitor = EnhancedMemoryMonitor(container)
         load_gen = LoadGenerator(base_url)
         report = ReportBuilder()
         
@@ -127,7 +127,7 @@ class TestQuickDemo:
         duration = 300
         base_url = "http://localhost:5001"
         
-        monitor = MemoryMonitor(container)
+        monitor = EnhancedMemoryMonitor(container)
         load_gen = LoadGenerator(base_url)
         report = ReportBuilder()
         
