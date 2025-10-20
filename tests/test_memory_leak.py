@@ -1,11 +1,11 @@
 ﻿"""
-РћСЃРЅРѕРІРЅС‹Рµ С‚РµСЃС‚С‹ РґР»СЏ РѕР±РЅР°СЂСѓР¶РµРЅРёСЏ СѓС‚РµС‡РµРє РїР°РјСЏС‚Рё
-РўРµСЃС‚С‹ РґР»СЏС‚СЃСЏ 10-15 РјРёРЅСѓС‚ РґР»СЏ СЂРµР°Р»РёСЃС‚РёС‡РЅРѕРіРѕ РѕР±РЅР°СЂСѓР¶РµРЅРёСЏ
+Основные тесты для обнаружения утечек памяти
+Тесты длятся 10-15 минут для реалистичного обнаружения
 """
 import pytest
 import allure
 import time
-from tests.utils.enhanced_monitor import EnhancedEnhancedMemoryMonitor
+from tests.utils.enhanced_monitor import EnhancedMemoryMonitor
 from tests.utils.load_generator import LoadGenerator
 from tests.utils.report_builder import ReportBuilder
 
