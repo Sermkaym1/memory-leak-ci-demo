@@ -168,16 +168,31 @@ jobs:
   allure-report:
     name: 📊 Allure отчет
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && (needs.quick-tests.result == 'success' || needs.full-tests.result == 'success')
     needs: [quick-tests, full-tests]
     
     steps:
     - name: 📥 Download Allure результаты
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: allure-results
+        merge-multiple: true
+      continue-on-error: true
         
-    - name: 📊 Генерация Allure отчета
+    - name: � Проверка наличия результатов
+      id: check_results
+      run: |
+        if [ -d "allure-results" ] && [ "$(find allure-results -name '*.json' | wc -l)" -gt 0 ]; then
+          echo "has_results=true" >> $GITHUB_OUTPUT
+          echo "✅ Найдены Allure результаты"
+        else
+          echo "has_results=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Allure результаты не найдены, создаем пустой отчет"
+          mkdir -p allure-results
+          echo '{"name":"No tests","status":"skipped"}' > allure-results/empty.json
+        fi
+        
+    - name: �📊 Генерация Allure отчета
       uses: simple-elf/allure-report-action@master
       if: always()
       with:
@@ -291,7 +306,7 @@ jobs:
     steps:
     - name: 📢 Slack уведомление
       uses: 8398a7/action-slack@v3
-      if: always()
+      if: always() && secrets.SLACK_WEBHOOK_URL != ''
       with:
         status: ${{ job.status }}
         channel: '#memory-leak-ci'
@@ -313,7 +328,7 @@ jobs:
         
     - name: 📧 Email уведомление при ошибке
       uses: dawidd6/action-send-mail@v3
-      if: failure()
+      if: failure() && secrets.EMAIL_USERNAME != '' && secrets.EMAIL_PASSWORD != '' && secrets.EMAIL_TO != ''
       with:
         server_address: smtp.gmail.com
         server_port: 587
