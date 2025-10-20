@@ -24,6 +24,14 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+# Разрешения для GitHub Actions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  pages: write
+  id-token: write
+
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -88,6 +96,7 @@ jobs:
     - name: 📋 Публикация результатов тестов
       uses: dorny/test-reporter@v1
       if: always()
+      continue-on-error: true
       with:
         name: Quick Tests Results
         path: quick-test-results.xml
@@ -153,6 +162,7 @@ jobs:
     - name: 📋 Публикация результатов тестов
       uses: dorny/test-reporter@v1
       if: always()
+      continue-on-error: true
       with:
         name: Full Tests Results
         path: full-test-results.xml
