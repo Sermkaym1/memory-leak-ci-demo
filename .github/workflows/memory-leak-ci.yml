@@ -1,24 +1,19 @@
 name: 🔍 Memory Leak Detection CI
 
 on:
-  # Запуск при push в main и PR
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  
-  # Ручной запуск
+  # Основной workflow только по запросу или для полных тестов
   workflow_dispatch:
     inputs:
       test_type:
         description: 'Тип тестов'
         required: true
-        default: 'quick'
+        default: 'demo'
         type: choice
         options:
-          - quick
-          - full
-          - performance
+          - demo      # Быстрые демо тесты (30 сек)
+          - quick     # Быстрые тесты (1 мин)
+          - full      # Полные тесты (10 мин)
+          - performance # Нагрузочные тесты
   
   # Расписание - каждую ночь в 2:00 UTC
   schedule:
