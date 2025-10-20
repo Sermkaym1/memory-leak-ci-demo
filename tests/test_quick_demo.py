@@ -1,4 +1,4 @@
-"""
+﻿"""
 Быстрые тесты для демонстрации (5 минут)
 Используйте для проверки что все работает
 """
@@ -42,10 +42,12 @@ class TestQuickDemo:
         report = ReportBuilder()
         
         with allure.step("Начало быстрого теста"):
-            initial_memory = monitor.get_current_memory()
+            initial_memory = monitor.get_detailed_metrics()
             allure.attach(
-                f"RSS: {initial_memory['rss_mb']:.2f} MB\n"
-                f"VMS: {initial_memory['vms_mb']:.2f} MB",
+                f"RSS: {initial_memory.rss_mb:.2f} MB\n"
+                f"VMS: {initial_memory.vms_mb:.2f} MB\n"
+                f"CPU: {initial_memory.cpu_percent:.1f}%\n"
+                f"Connections: {initial_memory.network_connections}",
                 name="Начальная память",
                 attachment_type=allure.attachment_type.TEXT
             )
@@ -69,15 +71,15 @@ class TestQuickDemo:
             
             measurement_count = 0
             while time.time() - start_time < duration:
-                mem = monitor.get_current_memory()
+                mem = monitor.get_detailed_metrics()
                 elapsed = time.time() - start_time
                 measurement_count += 1
                 
                 memory_data.append({
                     'time': elapsed,
-                    'rss_mb': mem['rss_mb'],
-                    'vms_mb': mem['vms_mb'],
-                    'percent': mem['percent']
+                    'rss_mb': mem.rss_mb,
+                    'vms_mb': mem.vms_mb,
+                    'percent': mem.memory_percent
                 })
                 
                 # УЛУЧШЕННАЯ НАБЛЮДАЕМОСТЬ - каждые 30 сек показываем прогресс
@@ -86,8 +88,8 @@ class TestQuickDemo:
                     remaining = duration - elapsed
                     print(f"📊 [{progress:5.1f}%] "
                           f"⏱️ {int(elapsed):3d}с/{duration}с "
-                          f"📈 RSS: {mem['rss_mb']:6.1f} MB "
-                          f"💾 VMS: {mem['vms_mb']:6.1f} MB "
+                          f"📈 RSS: {mem.rss_mb:6.1f} MB "
+                          f"💾 VMS: {mem.vms_mb:6.1f} MB "
                           f"⏳ Осталось: {int(remaining):3d}с "
                           f"📏 Измерений: {measurement_count}")
                 
@@ -101,7 +103,7 @@ class TestQuickDemo:
             print("="*60)
         
         with allure.step("Анализ"):
-            final_memory = monitor.get_current_memory()
+            final_memory = monitor.get_detailed_metrics()
             memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
             
             chart_path = report.create_memory_chart(
@@ -156,7 +158,7 @@ class TestQuickDemo:
         report = ReportBuilder()
         
         with allure.step("Начало быстрого теста"):
-            initial_memory = monitor.get_current_memory()
+            initial_memory = monitor.get_detailed_metrics()
         
         with allure.step(f"🚀 ГЕНЕРАЦИЯ НАГРУЗКИ {duration} секунд"):
             memory_data = []
@@ -177,15 +179,15 @@ class TestQuickDemo:
             
             measurement_count = 0
             while time.time() - start_time < duration:
-                mem = monitor.get_current_memory()
+                mem = monitor.get_detailed_metrics()
                 elapsed = time.time() - start_time
                 measurement_count += 1
                 
                 memory_data.append({
                     'time': elapsed,
-                    'rss_mb': mem['rss_mb'],
-                    'vms_mb': mem['vms_mb'],
-                    'percent': mem['percent']
+                    'rss_mb': mem.rss_mb,
+                    'vms_mb': mem.vms_mb,
+                    'percent': mem.memory_percent
                 })
                 
                 # УЛУЧШЕННАЯ НАБЛЮДАЕМОСТЬ - каждые 30 сек показываем прогресс
@@ -194,8 +196,8 @@ class TestQuickDemo:
                     remaining = duration - elapsed
                     print(f"📊 [{progress:5.1f}%] "
                           f"⏱️ {int(elapsed):3d}с/{duration}с "
-                          f"📈 RSS: {mem['rss_mb']:6.1f} MB "
-                          f"💾 VMS: {mem['vms_mb']:6.1f} MB "
+                          f"📈 RSS: {mem.rss_mb:6.1f} MB "
+                          f"💾 VMS: {mem.vms_mb:6.1f} MB "
                           f"⏳ Осталось: {int(remaining):3d}с "
                           f"📏 Измерений: {measurement_count}")
                 
@@ -209,7 +211,7 @@ class TestQuickDemo:
             print("="*60)
         
         with allure.step("Анализ"):
-            final_memory = monitor.get_current_memory()
+            final_memory = monitor.get_detailed_metrics()
             memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
             
             chart_path = report.create_memory_chart(

@@ -42,7 +42,7 @@ class TestMemoryLeakDetection:
         report = ReportBuilder()
         
         with allure.step("РќР°С‡Р°Р»Рѕ С‚РµСЃС‚Р° - Р·Р°РїРёСЃСЊ РЅР°С‡Р°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ"):
-            initial_memory = monitor.get_current_memory()
+            initial_memory = monitor.get_detailed_metrics()
             allure.attach(
                 f"RSS: {initial_memory['rss_mb']:.2f} MB\n"
                 f"VMS: {initial_memory['vms_mb']:.2f} MB",
@@ -63,27 +63,27 @@ class TestMemoryLeakDetection:
             
             # РњРѕРЅРёС‚РѕСЂРёРј РїР°РјСЏС‚СЊ РєР°Р¶РґС‹Рµ 5 СЃРµРєСѓРЅРґ
             while time.time() - start_time < duration:
-                mem = monitor.get_current_memory()
+                mem = monitor.get_detailed_metrics()
                 elapsed = time.time() - start_time
                 
                 memory_data.append({
                     'time': elapsed,
-                    'rss_mb': mem['rss_mb'],
-                    'vms_mb': mem['vms_mb'],
-                    'percent': mem['percent']
+                    'rss_mb': mem.rss_mb,
+                    'vms_mb': mem.vms_mb,
+                    'percent': mem.memory_percent
                 })
                 
                 # Р›РѕРіРёСЂСѓРµРј РєР°Р¶РґСѓСЋ РјРёРЅСѓС‚Сѓ
                 if int(elapsed) % 60 == 0:
-                    print(f"вЏ±пёЏ  {int(elapsed/60)} РјРёРЅ: RSS={mem['rss_mb']:.2f} MB, "
-                          f"VMS={mem['vms_mb']:.2f} MB, CPU={mem['percent']:.1f}%")
+                    print(f"вЏ±пёЏ  {int(elapsed/60)} РјРёРЅ: RSS={mem.rss_mb:.2f} MB, "
+                          f"VMS={mem.vms_mb:.2f} MB, CPU={mem.memory_percent:.1f}%")
                 
                 time.sleep(5)
             
             load_gen.stop()
         
         with allure.step("РђРЅР°Р»РёР· СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ"):
-            final_memory = monitor.get_current_memory()
+            final_memory = monitor.get_detailed_metrics()
             memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
             
             # РЎС‚СЂРѕРёРј РіСЂР°С„РёРєРё
@@ -172,7 +172,7 @@ class TestMemoryLeakDetection:
         report = ReportBuilder()
         
         with allure.step("РќР°С‡Р°Р»Рѕ С‚РµСЃС‚Р° - Р·Р°РїРёСЃСЊ РЅР°С‡Р°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ"):
-            initial_memory = monitor.get_current_memory()
+            initial_memory = monitor.get_detailed_metrics()
             allure.attach(
                 f"RSS: {initial_memory['rss_mb']:.2f} MB\n"
                 f"VMS: {initial_memory['vms_mb']:.2f} MB",
@@ -191,26 +191,26 @@ class TestMemoryLeakDetection:
             )
             
             while time.time() - start_time < duration:
-                mem = monitor.get_current_memory()
+                mem = monitor.get_detailed_metrics()
                 elapsed = time.time() - start_time
                 
                 memory_data.append({
                     'time': elapsed,
-                    'rss_mb': mem['rss_mb'],
-                    'vms_mb': mem['vms_mb'],
-                    'percent': mem['percent']
+                    'rss_mb': mem.rss_mb,
+                    'vms_mb': mem.vms_mb,
+                    'percent': mem.memory_percent
                 })
                 
                 if int(elapsed) % 60 == 0:
-                    print(f"вЏ±пёЏ  {int(elapsed/60)} РјРёРЅ: RSS={mem['rss_mb']:.2f} MB, "
-                          f"VMS={mem['vms_mb']:.2f} MB, CPU={mem['percent']:.1f}%")
+                    print(f"вЏ±пёЏ  {int(elapsed/60)} РјРёРЅ: RSS={mem.rss_mb:.2f} MB, "
+                          f"VMS={mem.vms_mb:.2f} MB, CPU={mem.memory_percent:.1f}%")
                 
                 time.sleep(5)
             
             load_gen.stop()
         
         with allure.step("РђРЅР°Р»РёР· СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ"):
-            final_memory = monitor.get_current_memory()
+            final_memory = monitor.get_detailed_metrics()
             memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
             
             chart_path = report.create_memory_chart(
