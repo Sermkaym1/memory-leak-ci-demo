@@ -5,9 +5,9 @@
 import pytest
 import allure
 import time
-from tests.utils.enhanced_monitor import EnhancedMemoryMonitor
-from tests.utils.load_generator import LoadGenerator
-from tests.utils.report_builder import ReportBuilder
+from .utils.enhanced_monitor import EnhancedMemoryMonitor
+from .utils.load_generator import LoadGenerator
+from .utils.report_builder import ReportBuilder
 
 
 @allure.feature('Memory Leak Detection')
