@@ -41,7 +41,7 @@ class ReportBuilder:
             return None
         
         # Извлекаем данные
-        times = [d['time'] / 60 for d in data]  # Конвертируем в минуты
+        times = [d['time'] for d in data]  # Оставляем в секундах для лучшей читаемости
         rss = [d['rss_mb'] for d in data]
         vms = [d.get('vms_mb', d['rss_mb']) for d in data]
         
@@ -50,49 +50,61 @@ class ReportBuilder:
         
         # Основные линии
         ax.plot(times, rss, label='RSS (Resident Set Size)', 
-                linewidth=2, color='#e74c3c', marker='o', markersize=3)
+                linewidth=3, color='#e74c3c', marker='o', markersize=6)
         ax.plot(times, vms, label='VMS (Virtual Memory Size)', 
-                linewidth=2, color='#3498db', marker='s', markersize=3, alpha=0.7)
+                linewidth=2, color='#3498db', marker='s', markersize=4, alpha=0.7)
         
         # Линия тренда для RSS
         if len(times) > 2:
             z = np.polyfit(times, rss, 1)
             p = np.poly1d(z)
-            ax.plot(times, p(times), "--", label=f'Тренд RSS (наклон: {z[0]:.2f} MB/мин)', 
+            trend_mb_per_sec = z[0]
+            trend_mb_per_min = trend_mb_per_sec * 60
+            ax.plot(times, p(times), "--", label=f'Тренд RSS ({trend_mb_per_min:+.2f} MB/мин)', 
                    linewidth=2, color='#c0392b', alpha=0.6)
         
         # Заполнение области под RSS
-        ax.fill_between(times, 0, rss, alpha=0.2, color='#e74c3c')
+        ax.fill_between(times, min(rss) * 0.9, rss, alpha=0.15, color='#e74c3c')
         
-        # Аннотации начала и конца
+        # Улучшенные аннотации с динамическим позиционированием
+        rss_range = max(rss) - min(rss)
+        time_range = max(times) - min(times)
+        
+        # Аннотация начала
         ax.annotate(f'Начало: {rss[0]:.1f} MB', 
                    xy=(times[0], rss[0]), 
-                   xytext=(times[0] + 0.5, rss[0] + 20),
+                   xytext=(times[0] + time_range * 0.1, rss[0] + rss_range * 0.3),
                    arrowprops=dict(arrowstyle='->', color='green', lw=2),
                    fontsize=10, color='green', weight='bold')
         
+        # Аннотация конца
         ax.annotate(f'Конец: {rss[-1]:.1f} MB\nРост: +{rss[-1] - rss[0]:.1f} MB', 
                    xy=(times[-1], rss[-1]), 
-                   xytext=(times[-1] - 2, rss[-1] + 20),
+                   xytext=(times[-1] - time_range * 0.2, rss[-1] + rss_range * 0.3),
                    arrowprops=dict(arrowstyle='->', color='red', lw=2),
                    fontsize=10, color='red', weight='bold')
         
         # Настройка осей и сетки
-        ax.set_xlabel('Время (минуты)', fontsize=12, weight='bold')
+        ax.set_xlabel('Время (секунды)', fontsize=12, weight='bold')
         ax.set_ylabel('Память (MB)', fontsize=12, weight='bold')
         ax.set_title(title, fontsize=14, weight='bold', pad=20)
         ax.legend(loc='upper left', fontsize=11)
         ax.grid(True, alpha=0.3, linestyle='--')
         
+        # Улучшенные оси
+        ax.set_xlim(min(times) - time_range * 0.05, max(times) + time_range * 0.05)
+        ax.set_ylim(min(rss) - rss_range * 0.1, max(max(rss), max(vms)) + rss_range * 0.3)
+        
         # Добавляем информацию о росте
         growth = rss[-1] - rss[0]
-        duration = times[-1]
-        growth_rate = growth / duration if duration > 0 else 0
+        duration_sec = times[-1] - times[0]
+        duration_min = duration_sec / 60
+        growth_rate_per_min = (growth / duration_min) if duration_min > 0 else 0
         
         info_text = f'📊 Статистика:\n'
-        info_text += f'Рост памяти: {growth:.2f} MB\n'
-        info_text += f'Скорость: {growth_rate:.2f} MB/мин\n'
-        info_text += f'Длительность: {duration:.1f} мин'
+        info_text += f'Рост памяти: {growth:+.2f} MB\n'
+        info_text += f'Скорость: {growth_rate_per_min:+.2f} MB/мин\n'
+        info_text += f'Длительность: {duration_sec:.0f}с ({duration_min:.1f} мин)'
         
         ax.text(0.02, 0.98, info_text, transform=ax.transAxes,
                fontsize=10, verticalalignment='top',
