@@ -101,14 +101,14 @@ class TestQuickDemo:
             print(f"📊 Всего измерений: {len(memory_data)}")
             print(f"⏱️  Общее время: {elapsed:.1f} сек")
             print("="*60)
-        
+    
         with allure.step("Анализ"):
             final_memory = monitor.get_detailed_metrics()
-            memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
+            memory_growth = final_memory.rss_mb - initial_memory.rss_mb
             
             chart_path = report.create_memory_chart(
                 memory_data,
-                title="Quick Test - App WITH Leak (5 min)",
+                title="Quick Test - App WITH Leak (1 min)",
                 filename="quick_with_leak.png"
             )
             allure.attach.file(chart_path, name="График", attachment_type=allure.attachment_type.PNG)
@@ -212,11 +212,11 @@ class TestQuickDemo:
         
         with allure.step("Анализ"):
             final_memory = monitor.get_detailed_metrics()
-            memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
+            memory_growth = final_memory.rss_mb - initial_memory.rss_mb
             
             chart_path = report.create_memory_chart(
                 memory_data,
-                title="Quick Test - App WITHOUT Leak (5 min)",
+                title="Quick Test - App WITHOUT Leak (1 min)",
                 filename="quick_without_leak.png"
             )
             allure.attach.file(chart_path, name="График", attachment_type=allure.attachment_type.PNG)

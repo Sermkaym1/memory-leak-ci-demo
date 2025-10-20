@@ -36,7 +36,7 @@ class TestMemoryLeakDetection:
         duration = 600  # 10 РјРёРЅСѓС‚
         base_url = "http://localhost:5000"
         
-        # РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
+        # РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
         monitor = EnhancedMemoryMonitor(container)
         load_gen = LoadGenerator(base_url)
         report = ReportBuilder()
@@ -44,8 +44,8 @@ class TestMemoryLeakDetection:
         with allure.step("РќР°С‡Р°Р»Рѕ С‚РµСЃС‚Р° - Р·Р°РїРёСЃСЊ РЅР°С‡Р°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ"):
             initial_memory = monitor.get_detailed_metrics()
             allure.attach(
-                f"RSS: {initial_memory['rss_mb']:.2f} MB\n"
-                f"VMS: {initial_memory['vms_mb']:.2f} MB",
+                f"RSS: {initial_memory.rss_mb:.2f} MB\n"
+                f"VMS: {initial_memory.vms_mb:.2f} MB",
                 name="РќР°С‡Р°Р»СЊРЅР°СЏ РїР°РјСЏС‚СЊ",
                 attachment_type=allure.attachment_type.TEXT
             )
@@ -84,7 +84,7 @@ class TestMemoryLeakDetection:
         
         with allure.step("РђРЅР°Р»РёР· СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ"):
             final_memory = monitor.get_detailed_metrics()
-            memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
+            memory_growth = final_memory.rss_mb - initial_memory.rss_mb
             
             # РЎС‚СЂРѕРёРј РіСЂР°С„РёРєРё
             chart_path = report.create_memory_chart(
@@ -174,13 +174,13 @@ class TestMemoryLeakDetection:
         with allure.step("РќР°С‡Р°Р»Рѕ С‚РµСЃС‚Р° - Р·Р°РїРёСЃСЊ РЅР°С‡Р°Р»СЊРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ"):
             initial_memory = monitor.get_detailed_metrics()
             allure.attach(
-                f"RSS: {initial_memory['rss_mb']:.2f} MB\n"
-                f"VMS: {initial_memory['vms_mb']:.2f} MB",
+                f"RSS: {initial_memory.rss_mb:.2f} MB\n"
+                f"VMS: {initial_memory.vms_mb:.2f} MB",
                 name="РќР°С‡Р°Р»СЊРЅР°СЏ РїР°РјСЏС‚СЊ",
                 attachment_type=allure.attachment_type.TEXT
             )
         
-        with allure.step(f"Р“РµРЅРµСЂР°С†РёСЏ РЅР°РіСЂСѓР·РєРё РІ С‚РµС‡РµРЅРёРµ {duration} СЃРµРєСѓРЅРґ"):
+        with allure.step(f"Load generation for {duration} seconds"):
             memory_data = []
             start_time = time.time()
             
@@ -211,7 +211,7 @@ class TestMemoryLeakDetection:
         
         with allure.step("РђРЅР°Р»РёР· СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ"):
             final_memory = monitor.get_detailed_metrics()
-            memory_growth = final_memory['rss_mb'] - initial_memory['rss_mb']
+            memory_growth = final_memory.rss_mb - initial_memory.rss_mb
             
             chart_path = report.create_memory_chart(
                 memory_data,
@@ -306,25 +306,25 @@ class TestMemoryLeakDetection:
             while time.time() - start_time < duration:
                 elapsed = time.time() - start_time
                 
-                mem_leak = monitor_leak.get_current_memory()
-                mem_no_leak = monitor_no_leak.get_current_memory()
+                mem_leak = monitor_leak.get_detailed_metrics()
+                mem_no_leak = monitor_no_leak.get_detailed_metrics()
                 
                 data_leak.append({
                     'time': elapsed,
-                    'rss_mb': mem_leak['rss_mb'],
-                    'vms_mb': mem_leak['vms_mb']
+                    'rss_mb': mem_leak.rss_mb,
+                    'vms_mb': mem_leak.vms_mb
                 })
                 
                 data_no_leak.append({
                     'time': elapsed,
-                    'rss_mb': mem_no_leak['rss_mb'],
-                    'vms_mb': mem_no_leak['vms_mb']
+                    'rss_mb': mem_no_leak.rss_mb,
+                    'vms_mb': mem_no_leak.vms_mb
                 })
                 
                 if int(elapsed) % 60 == 0:
                     print(f"вЏ±пёЏ  {int(elapsed/60)} РјРёРЅ:")
-                    print(f"   WITH leak: RSS={mem_leak['rss_mb']:.2f} MB")
-                    print(f"   WITHOUT leak: RSS={mem_no_leak['rss_mb']:.2f} MB")
+                    print(f"   WITH leak: RSS={mem_leak.rss_mb:.2f} MB")
+                    print(f"   WITHOUT leak: RSS={mem_no_leak.rss_mb:.2f} MB")
                 
                 time.sleep(5)
             
