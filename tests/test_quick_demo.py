@@ -5,9 +5,9 @@
 import pytest
 import allure
 import time
-from tests.utils.memory_monitor import MemoryMonitor
-from tests.utils.load_generator import LoadGenerator
-from tests.utils.report_builder import ReportBuilder
+from utils.memory_monitor import MemoryMonitor
+from utils.load_generator import LoadGenerator
+from utils.report_builder import ReportBuilder
 
 
 @allure.feature('Quick Demo')
@@ -44,7 +44,7 @@ class TestQuickDemo:
             
             load_gen.start(
                 endpoints=['/api/cache', '/api/stress'],
-                rps=3,  # Меньше RPS для быстрого теста
+                rps=10,  # Меньше RPS для быстрого теста
                 duration=duration
             )
             
@@ -118,7 +118,7 @@ class TestQuickDemo:
             
             load_gen.start(
                 endpoints=['/api/cache', '/api/stress'],
-                rps=3,
+                rps=10,
                 duration=duration
             )
             

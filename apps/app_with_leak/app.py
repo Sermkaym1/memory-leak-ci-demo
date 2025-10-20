@@ -5,7 +5,7 @@ Flask приложение с РЕАЛИСТИЧНЫМИ утечками пам
 import os
 import time
 import psycopg2
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from datetime import datetime
 import redis
 
@@ -207,8 +207,7 @@ def stress_test():
 @app.route('/metrics')
 def metrics():
     """Endpoint для Prometheus"""
-    return f"""
-# HELP memory_cache_size Size of in-memory cache
+    metrics_text = f"""# HELP memory_cache_size Size of in-memory cache
 # TYPE memory_cache_size gauge
 memory_cache_size {len(GLOBAL_CACHE)}
 
@@ -224,7 +223,7 @@ file_descriptors_open {len(OPEN_FILES)}
 # TYPE request_history_size gauge
 request_history_size {len(REQUEST_HISTORY)}
 """
-
+    return Response(metrics_text, mimetype='text/plain')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

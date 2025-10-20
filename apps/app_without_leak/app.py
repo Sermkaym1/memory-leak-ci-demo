@@ -5,7 +5,7 @@ Flask приложение БЕЗ утечек памяти.
 import os
 import psycopg2
 from psycopg2 import pool
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from datetime import datetime
 import redis
 from functools import lru_cache
@@ -211,8 +211,7 @@ def stress_test():
 @app.route('/metrics')
 def metrics():
     """Endpoint для Prometheus"""
-    return f"""
-# HELP memory_cache_size Size of in-memory cache
+    metrics_text = f"""# HELP memory_cache_size Size of in-memory cache
 # TYPE memory_cache_size gauge
 memory_cache_size {len(CACHE)}
 
@@ -220,6 +219,7 @@ memory_cache_size {len(CACHE)}
 # TYPE memory_cache_max gauge
 memory_cache_max {CACHE.maxsize}
 """
+    return Response(metrics_text, mimetype='text/plain')
 
 
 if __name__ == '__main__':
