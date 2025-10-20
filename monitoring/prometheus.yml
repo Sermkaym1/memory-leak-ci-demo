@@ -1,0 +1,47 @@
+# ==========================================
+# Prometheus конфигурация для мониторинга
+# ==========================================
+
+global:
+  scrape_interval: 15s      # Частота сбора метрик
+  evaluation_interval: 15s  # Частота оценки правил
+  external_labels:
+    monitor: 'memory-leak-demo'
+
+# Правила алертов (опционально)
+# rule_files:
+#   - "alerts.yml"
+
+# Конфигурация сбора метрик
+scrape_configs:
+  # Мониторинг самого Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Приложение С утечкой памяти
+  - job_name: 'app-with-leak'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['app-with-leak:5000']
+        labels:
+          app: 'leak-app'
+          type: 'with-leak'
+    metrics_path: '/metrics'
+    
+  # Приложение БЕЗ утечки памяти
+  - job_name: 'app-without-leak'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['app-without-leak:5001']
+        labels:
+          app: 'no-leak-app'
+          type: 'without-leak'
+    metrics_path: '/metrics'
+
+  # Docker контейнеры (требует cAdvisor - опционально)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']

@@ -1,0 +1,27 @@
+# Тестирование
+pytest==7.4.3
+pytest-timeout==2.2.0
+pytest-xdist==3.5.0
+
+# Allure отчеты
+allure-pytest==2.13.2
+
+# HTTP клиент
+requests==2.31.0
+
+# Мониторинг системы
+psutil==5.9.6
+
+# Docker SDK
+docker==7.0.0
+
+# Утилиты
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Графики
+matplotlib==3.8.2
+numpy==1.26.2
+
+# Работа с данными
+pandas==2.1.4

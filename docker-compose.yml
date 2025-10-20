@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # ===================================
+  # Приложение С утечкой памяти
+  # ===================================
+  app-with-leak:
+    build:
+      context: ./apps/app_with_leak
+      dockerfile: Dockerfile
+    container_name: app-with-leak
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - DB_HOST=postgres
+      - DB_NAME=testdb
+      - DB_USER=testuser
+      - DB_PASSWORD=testpass
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - leak-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    restart: unless-stopped
+
+  # ===================================
+  # Приложение БЕЗ утечки памяти
+  # ===================================
+  app-without-leak:
+    build:
+      context: ./apps/app_without_leak
+      dockerfile: Dockerfile
+    container_name: app-without-leak
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - DB_HOST=postgres
+      - DB_NAME=testdb
+      - DB_USER=testuser
+      - DB_PASSWORD=testpass
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - leak-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    restart: unless-stopped
+
+  # ===================================
+  # PostgreSQL база данных
+  # ===================================
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres-leak-demo
+    environment:
+      - POSTGRES_DB=testdb
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - leak-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================
+  # Redis кеш
+  # ===================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis-leak-demo
+    ports:
+      - "6379:6379"
+    networks:
+      - leak-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================
+  # Prometheus - сбор метрик
+  # ===================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-leak-demo
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - leak-network
+    depends_on:
+      - app-with-leak
+      - app-without-leak
+
+  # ===================================
+  # Grafana - визуализация метрик
+  # ===================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-leak-demo
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - leak-network
+    depends_on:
+      - prometheus
+
+networks:
+  leak-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
