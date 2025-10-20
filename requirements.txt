@@ -1,34 +1,16 @@
-# Тестирование
+# Core testing
 pytest==7.4.3
 pytest-timeout==2.2.0
-pytest-xdist==3.5.0
-
-# Allure отчеты
 allure-pytest==2.13.2
 
-# HTTP клиент
-requests==2.31.0
-
-# Мониторинг системы
+# System monitoring  
 psutil==5.9.6
-
-# Docker SDK
 docker==7.0.0
 
-# Утилиты
+# HTTP and utilities
+requests==2.31.0
 python-dotenv==1.0.0
-pyyaml==6.0.1
 
-# Графики
-matplotlib==3.10.7
-numpy==2.3.4
-
-# Работа с данными
-pandas==2.1.4
-
-# Веб-дашборд (опционально)
-flask==3.0.3
-flask-socketio==5.3.6
-
-# Уведомления (опционально)
-slack-sdk==3.26.2
+# Graphics - very stable versions
+matplotlib==3.7.2
+numpy==1.24.4
