@@ -13,7 +13,7 @@ BLUE := \033[0;34m
 NC := \033[0m # No Color
 
 # Переменные
-PYTHON := python3
+PYTHON := ./venv/bin/python3
 VENV := venv
 ALLURE_RESULTS := tests/allure-results
 ALLURE_REPORT := tests/allure-report
