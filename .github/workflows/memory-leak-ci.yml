@@ -306,7 +306,8 @@ jobs:
     steps:
     - name: 📢 Slack уведомление
       uses: 8398a7/action-slack@v3
-      if: always() && secrets.SLACK_WEBHOOK_URL != ''
+      if: always()
+      continue-on-error: true
       with:
         status: ${{ job.status }}
         channel: '#memory-leak-ci'
@@ -328,11 +329,15 @@ jobs:
         
     - name: 📧 Email уведомление при ошибке
       uses: dawidd6/action-send-mail@v3
-      if: failure() && secrets.EMAIL_USERNAME != '' && secrets.EMAIL_PASSWORD != '' && secrets.EMAIL_TO != ''
+      if: failure()
+      continue-on-error: true
       with:
         server_address: smtp.gmail.com
         server_port: 587
         username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🔴 Memory Leak CI Failed: ${{ github.repository }}"
+        to: ${{ secrets.EMAIL_TO }}
         password: ${{ secrets.EMAIL_PASSWORD }}
         subject: "🔴 Memory Leak CI Failed: ${{ github.repository }}"
         to: ${{ secrets.EMAIL_TO }}
