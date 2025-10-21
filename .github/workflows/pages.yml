@@ -9,9 +9,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write    # Нужно для создания gh-pages ветки
   pages: write
   id-token: write
+  deployments: write
 
 concurrency:
   group: "pages"

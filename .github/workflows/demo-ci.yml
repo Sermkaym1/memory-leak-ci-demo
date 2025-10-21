@@ -14,6 +14,7 @@ permissions:
   pages: write
   id-token: write
   actions: read
+  deployments: write  # Для GitHub Pages deployments
 
 env:
   DOCKER_BUILDKIT: 1
@@ -207,39 +208,23 @@ jobs:
         publish_branch: gh-pages
         force_orphan: true
         enable_jekyll: false
+        allow_empty_commit: false
+        keep_files: false
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
         commit_message: 'Deploy demo results and Allure reports'
-      continue-on-error: true
       
-    - name: 📊 Fallback - Manual deploy if needed
+    - name: 📊 Show deployment status
       if: always()
       run: |
-        # Проверяем успешность предыдущего шага
-        if [ ! -z "$(git ls-remote --heads origin gh-pages)" ]; then
-          echo "✅ gh-pages branch exists, deploy successful!"
-        else
-          echo "⚠️ Trying manual git deployment..."
-          
-          # Настройка git
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Создание и переключение на gh-pages
-          git checkout --orphan gh-pages
-          git rm -rf .
-          
-          # Копирование контента
-          if [ -d "gh-pages-content" ]; then
-            cp -r gh-pages-content/* .
-            git add .
-            git commit -m "Manual deploy of demo results"
-            git push origin gh-pages --force
-            echo "✅ Manual deployment successful!"
-          else
-            echo "❌ No content to deploy"
-          fi
-        fi
+        echo "🚀 GitHub Pages deployment completed via peaceiris/actions-gh-pages"
+        echo "📍 Site will be available at: https://sermkaym1.github.io/memory-leak-ci-demo/"
+        echo "⏳ GitHub Pages may take a few minutes to update"
+        echo ""
+        echo "📋 Deployment details:"
+        echo "  - Main page: index.html"
+        echo "  - Allure reports: /allure-report/"
+        echo "  - Published branch: gh-pages"
       
     - name: 📊 Fallback - Show Report Info
       if: always()
