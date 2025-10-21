@@ -148,7 +148,7 @@ jobs:
         EOF
         fi
         
-    - name: �📊 Generate Allure Report
+    - name: 📊 Generate Allure Report
       if: always()
       uses: simple-elf/allure-report-action@v1.9
       with:
@@ -157,6 +157,22 @@ jobs:
         gh_pages: gh-pages
         allure_history: allure-history
         keep_reports: 20
+        subdomain: sermkaym1.github.io
+        report_url: https://sermkaym1.github.io/memory-leak-ci-demo/
+        
+    - name: 🔧 Fix Allure redirect links
+      if: always()
+      run: |
+        # Исправляем редирект в allure-history/index.html для относительных ссылок
+        if [ -f "allure-history/index.html" ]; then
+          echo "🔧 Fixing Allure redirect links..."
+          # Заменяем абсолютные ссылки на относительные
+          sed -i 's|https://Sermkaym1.github.io/memory-leak-ci-demo/||g' allure-history/index.html
+          echo "✅ Fixed redirect in allure-history/index.html"
+          cat allure-history/index.html
+        else
+          echo "⚠️ allure-history/index.html not found"
+        fi
         
     - name: 📄 Prepare GitHub Pages content
       if: always()
@@ -169,9 +185,18 @@ jobs:
         
         # Копируем Allure отчеты если есть
         if [ -d "allure-history" ] && [ "$(ls -A allure-history)" ]; then
-          mkdir -p gh-pages-content/allure-report
-          cp -r allure-history/* gh-pages-content/allure-report/
-          echo "✅ Allure reports copied to /allure-report/"
+          echo "✅ Copying Allure reports from allure-history/"
+          cp -r allure-history/* gh-pages-content/
+          
+          # Создаем дополнительную копию в /allure-report/ для обратной совместимости
+          if [ ! -d "gh-pages-content/allure-report" ]; then
+            mkdir -p gh-pages-content/allure-report
+            cp -r allure-history/* gh-pages-content/allure-report/
+          fi
+          
+          echo "📊 Allure structure:"
+          ls -la gh-pages-content/ | head -10
+          
         elif [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
           mkdir -p gh-pages-content/allure-report  
           cp -r allure-report/* gh-pages-content/allure-report/
