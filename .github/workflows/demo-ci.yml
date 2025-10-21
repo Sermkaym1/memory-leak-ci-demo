@@ -157,7 +157,6 @@ jobs:
         gh_pages: gh-pages
         allure_history: allure-history
         keep_reports: 20
-        subdomain: sermkaym1.github.io
         report_url: https://sermkaym1.github.io/memory-leak-ci-demo/
         
     - name: 🔧 Fix Allure redirect links
