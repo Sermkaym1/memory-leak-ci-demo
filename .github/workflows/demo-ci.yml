@@ -26,6 +26,9 @@ jobs:
   demo-tests:
     name: 🎯 Demo Memory Leak Tests
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: 📥 Checkout код
@@ -157,16 +160,37 @@ jobs:
         allure_history: allure-history
         keep_reports: 20
         
-    - name: 🚀 Deploy Allure Report to GitHub Pages
+    - name: � Combine with main site
       if: always()
-      uses: peaceiris/actions-gh-pages@v4
+      run: |
+        # Создаем структуру для GitHub Pages
+        mkdir -p pages-content
+        
+        # Копируем главную страницу
+        cp index.html pages-content/
+        
+        # Копируем Allure отчеты если есть
+        if [ -d "allure-history" ]; then
+          cp -r allure-history pages-content/allure-report
+          echo "✅ Allure reports copied"
+        else
+          echo "⚠️ No Allure reports found"
+        fi
+        
+        # Проверяем структуру
+        echo "📁 Pages content structure:"
+        find pages-content -type f | head -10
+        
+    - name: 📦 Upload Pages artifact
+      if: always()
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: allure-history
-        destination_dir: allure-report
-        force_orphan: true
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
+        path: pages-content
+        
+    - name: 🚀 Deploy to GitHub Pages
+      if: always()
+      id: deployment
+      uses: actions/deploy-pages@v4
       continue-on-error: true
       
     - name: 📊 Fallback - Show Report Info
