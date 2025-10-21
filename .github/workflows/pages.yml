@@ -21,22 +21,18 @@ jobs:
   deploy:
     name: 🚀 Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: 📥 Checkout
       uses: actions/checkout@v4
       
-    - name: 📄 Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: 📦 Upload artifact
-      uses: actions/upload-pages-artifact@v3
+    - name: � Deploy to GitHub Pages (gh-pages branch)
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        path: '.'
-        
-    - name: 🚀 Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: '.'
+        publish_branch: gh-pages
+        force_orphan: false
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy main site to GitHub Pages 📄'

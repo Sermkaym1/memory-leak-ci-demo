@@ -26,9 +26,6 @@ jobs:
   demo-tests:
     name: 🎯 Demo Memory Leak Tests
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: 📥 Checkout код
@@ -160,37 +157,38 @@ jobs:
         allure_history: allure-history
         keep_reports: 20
         
-    - name: � Combine with main site
+    - name: 📄 Prepare GitHub Pages content
       if: always()
       run: |
         # Создаем структуру для GitHub Pages
-        mkdir -p pages-content
+        mkdir -p gh-pages-content
         
         # Копируем главную страницу
-        cp index.html pages-content/
+        cp index.html gh-pages-content/
         
         # Копируем Allure отчеты если есть
         if [ -d "allure-history" ]; then
-          cp -r allure-history pages-content/allure-report
-          echo "✅ Allure reports copied"
+          cp -r allure-history/* gh-pages-content/
+          echo "✅ Allure reports copied to root"
         else
           echo "⚠️ No Allure reports found"
         fi
         
         # Проверяем структуру
-        echo "📁 Pages content structure:"
-        find pages-content -type f | head -10
+        echo "📁 GitHub Pages content structure:"
+        find gh-pages-content -type f | head -10
         
-    - name: 📦 Upload Pages artifact
+    - name: � Deploy to GitHub Pages (gh-pages branch)
       if: always()
-      uses: actions/upload-pages-artifact@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        path: pages-content
-        
-    - name: 🚀 Deploy to GitHub Pages
-      if: always()
-      id: deployment
-      uses: actions/deploy-pages@v4
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: gh-pages-content
+        publish_branch: gh-pages
+        force_orphan: false
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy demo results and Allure reports 🚀'
       continue-on-error: true
       
     - name: 📊 Fallback - Show Report Info
