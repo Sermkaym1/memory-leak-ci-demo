@@ -26,13 +26,26 @@ jobs:
     - name: 📥 Checkout
       uses: actions/checkout@v4
       
-    - name: � Deploy to GitHub Pages (gh-pages branch)
+    - name: 📄 Prepare site content
+      run: |
+        echo "📁 Preparing GitHub Pages content..."
+        mkdir -p site-content
+        cp index.html site-content/
+        
+        # Создаем .nojekyll файл
+        touch site-content/.nojekyll
+        
+        echo "✅ Site content ready:"
+        ls -la site-content/
+        
+    - name: 🚀 Deploy to GitHub Pages (gh-pages branch)
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: '.'
+        publish_dir: site-content
         publish_branch: gh-pages
-        force_orphan: false
+        force_orphan: true
+        enable_jekyll: false
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: 'Deploy main site to GitHub Pages 📄'
+        commit_message: 'Deploy main site to GitHub Pages'

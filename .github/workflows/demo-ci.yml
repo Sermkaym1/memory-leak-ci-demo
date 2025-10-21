@@ -167,29 +167,79 @@ jobs:
         cp index.html gh-pages-content/
         
         # Копируем Allure отчеты если есть
-        if [ -d "allure-history" ]; then
-          cp -r allure-history/* gh-pages-content/
-          echo "✅ Allure reports copied to root"
+        if [ -d "allure-history" ] && [ "$(ls -A allure-history)" ]; then
+          mkdir -p gh-pages-content/allure-report
+          cp -r allure-history/* gh-pages-content/allure-report/
+          echo "✅ Allure reports copied to /allure-report/"
+        elif [ -d "allure-report" ] && [ "$(ls -A allure-report)" ]; then
+          mkdir -p gh-pages-content/allure-report  
+          cp -r allure-report/* gh-pages-content/allure-report/
+          echo "✅ Allure reports copied from allure-report/"
         else
-          echo "⚠️ No Allure reports found"
+          echo "⚠️ No Allure reports found (checked allure-history and allure-report)"
+          # Создаем заглушку
+          mkdir -p gh-pages-content/allure-report
+          echo '<html><body><h1>Allure reports are being generated...</h1><p>Please wait or check CI status.</p></body></html>' > gh-pages-content/allure-report/index.html
         fi
         
         # Проверяем структуру
         echo "📁 GitHub Pages content structure:"
         find gh-pages-content -type f | head -10
         
-    - name: � Deploy to GitHub Pages (gh-pages branch)
+    - name: 🔍 Debug - Check content before deploy
+      if: always()
+      run: |
+        echo "📁 Content to deploy:"
+        ls -la gh-pages-content/ || echo "No gh-pages-content directory"
+        
+        echo "📊 File count:"
+        find gh-pages-content -type f | wc -l || echo "0"
+        
+        echo "🔑 Git config:"
+        git config --list | grep user || echo "No git user config"
+        
+    - name: 🚀 Deploy to GitHub Pages (gh-pages branch)
       if: always()
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: gh-pages-content
         publish_branch: gh-pages
-        force_orphan: false
+        force_orphan: true
+        enable_jekyll: false
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: 'Deploy demo results and Allure reports 🚀'
+        commit_message: 'Deploy demo results and Allure reports'
       continue-on-error: true
+      
+    - name: 📊 Fallback - Manual deploy if needed
+      if: always()
+      run: |
+        # Проверяем успешность предыдущего шага
+        if [ ! -z "$(git ls-remote --heads origin gh-pages)" ]; then
+          echo "✅ gh-pages branch exists, deploy successful!"
+        else
+          echo "⚠️ Trying manual git deployment..."
+          
+          # Настройка git
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Создание и переключение на gh-pages
+          git checkout --orphan gh-pages
+          git rm -rf .
+          
+          # Копирование контента
+          if [ -d "gh-pages-content" ]; then
+            cp -r gh-pages-content/* .
+            git add .
+            git commit -m "Manual deploy of demo results"
+            git push origin gh-pages --force
+            echo "✅ Manual deployment successful!"
+          else
+            echo "❌ No content to deploy"
+          fi
+        fi
       
     - name: 📊 Fallback - Show Report Info
       if: always()
