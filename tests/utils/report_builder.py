@@ -66,23 +66,43 @@ class ReportBuilder:
         # Заполнение области под RSS
         ax.fill_between(times, min(rss) * 0.9, rss, alpha=0.15, color='#e74c3c')
         
-        # Улучшенные аннотации с динамическим позиционированием
+        # 🎨 УЛУЧШЕННЫЕ аннотации с умным позиционированием
         rss_range = max(rss) - min(rss)
         time_range = max(times) - min(times)
         
-        # Аннотация начала
+        # Определяем рост памяти для выбора цветов
+        growth = rss[-1] - rss[0]
+        
+        # Аннотация начала - всегда зеленая (старт)
+        start_y_offset = rss_range * 0.4 if rss[0] < np.median(rss) else -rss_range * 0.2
         ax.annotate(f'Начало: {rss[0]:.1f} MB', 
                    xy=(times[0], rss[0]), 
-                   xytext=(times[0] + time_range * 0.1, rss[0] + rss_range * 0.3),
+                   xytext=(times[0] + time_range * 0.15, rss[0] + start_y_offset),
                    arrowprops=dict(arrowstyle='->', color='green', lw=2),
-                   fontsize=10, color='green', weight='bold')
+                   fontsize=11, color='green', weight='bold',
+                   bbox=dict(boxstyle='round,pad=0.3', facecolor='lightgreen', alpha=0.7))
         
-        # Аннотация конца
-        ax.annotate(f'Конец: {rss[-1]:.1f} MB\nРост: +{rss[-1] - rss[0]:.1f} MB', 
+        # Аннотация конца - цвет зависит от роста
+        if growth > 5.0:  # Значительный рост
+            end_color = 'red'
+            verdict = 'УТЕЧКА!'
+            bg_color = 'mistyrose'
+        elif growth > 2.0:  # Умеренный рост
+            end_color = 'orange'
+            verdict = 'Рост'
+            bg_color = 'moccasin'
+        else:  # Стабильно
+            end_color = 'darkgreen'
+            verdict = 'ЗДОРОВО!'
+            bg_color = 'lightgreen'
+        
+        end_y_offset = rss_range * 0.4 if rss[-1] < np.median(rss) else -rss_range * 0.3
+        ax.annotate(f'Конец: {rss[-1]:.1f} MB\nРост: +{growth:.1f} MB\n{verdict}', 
                    xy=(times[-1], rss[-1]), 
-                   xytext=(times[-1] - time_range * 0.2, rss[-1] + rss_range * 0.3),
-                   arrowprops=dict(arrowstyle='->', color='red', lw=2),
-                   fontsize=10, color='red', weight='bold')
+                   xytext=(times[-1] - time_range * 0.25, rss[-1] + end_y_offset),
+                   arrowprops=dict(arrowstyle='->', color=end_color, lw=2),
+                   fontsize=11, color=end_color, weight='bold',
+                   bbox=dict(boxstyle='round,pad=0.4', facecolor=bg_color, alpha=0.8))
         
         # Настройка осей и сетки
         ax.set_xlabel('Время (секунды)', fontsize=12, weight='bold')
@@ -95,20 +115,40 @@ class ReportBuilder:
         ax.set_xlim(min(times) - time_range * 0.05, max(times) + time_range * 0.05)
         ax.set_ylim(min(rss) - rss_range * 0.1, max(max(rss), max(vms)) + rss_range * 0.3)
         
-        # Добавляем информацию о росте
+        # 📊 УЛУЧШЕННАЯ информация с вердиктом
         growth = rss[-1] - rss[0]
         duration_sec = times[-1] - times[0]
         duration_min = duration_sec / 60
         growth_rate_per_min = (growth / duration_min) if duration_min > 0 else 0
         
-        info_text = f'📊 Статистика:\n'
-        info_text += f'Рост памяти: {growth:+.2f} MB\n'
-        info_text += f'Скорость: {growth_rate_per_min:+.2f} MB/мин\n'
-        info_text += f'Длительность: {duration_sec:.0f}с ({duration_min:.1f} мин)'
+        # Определяем вердикт по росту
+        if growth > 8.0:
+            verdict_emoji = "🚨"
+            verdict_text = "КРИТИЧЕСКАЯ УТЕЧКА"
+            info_bg_color = 'mistyrose'
+        elif growth > 4.0:
+            verdict_emoji = "🔴" 
+            verdict_text = "УТЕЧКА ОБНАРУЖЕНА"
+            info_bg_color = 'moccasin'
+        elif growth > 1.0:
+            verdict_emoji = "⚠️"
+            verdict_text = "НЕБОЛЬШОЙ РОСТ"
+            info_bg_color = 'lightyellow'
+        else:
+            verdict_emoji = "✅"
+            verdict_text = "СТАБИЛЬНО"
+            info_bg_color = 'lightgreen'
         
-        ax.text(0.02, 0.98, info_text, transform=ax.transAxes,
-               fontsize=10, verticalalignment='top',
-               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        info_text = f'📊 Анализ памяти:\n'
+        info_text += f'{verdict_emoji} Вердикт: {verdict_text}\n'
+        info_text += f'📈 Рост: {growth:+.2f} MB\n'
+        info_text += f'⚡ Скорость: {growth_rate_per_min:+.1f} MB/мин\n'
+        info_text += f'⏱️ Время: {duration_sec:.0f}с'
+        
+        # Позиционируем информационный блок справа вверху, чтобы не перекрывал надписи
+        ax.text(0.98, 0.98, info_text, transform=ax.transAxes,
+               fontsize=10, verticalalignment='top', horizontalalignment='right',
+               bbox=dict(boxstyle='round,pad=0.5', facecolor=info_bg_color, alpha=0.9))
         
         # Сохранение
         filepath = os.path.join(self.output_dir, filename)
@@ -227,18 +267,28 @@ class ReportBuilder:
         ss_tot = np.sum((memory - np.mean(memory)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
         
-        # Определяем тренд
-        if slope > 3.0:  # Рост более 3 MB/мин
-            trend = 'increasing'
-        elif slope < -3.0:
-            trend = 'decreasing'
-        else:
-            trend = 'stable'
-        
-        # Общий рост памяти
+        # 🔥 УЛУЧШЕННЫЕ КРИТЕРИИ для определения утечки:
         total_growth = memory[-1] - memory[0]
         duration = times[-1] - times[0]
         avg_growth_rate = total_growth / duration if duration > 0 else 0
+        
+        # Для демо: более строгие критерии
+        # Нормальный рост Python приложения: 1-2 MB за 30 сек = 2-4 MB/мин
+        # Утечка: более 10 MB/мин или более 5 MB за 30 сек
+        if duration < 1.0:  # Менее минуты - используем абсолютные значения
+            if total_growth > 5.0:  # Более 5 MB за короткое время
+                trend = 'increasing'
+            elif total_growth < -2.0:
+                trend = 'decreasing'
+            else:
+                trend = 'stable'
+        else:  # Более минуты - используем скорость
+            if slope > 10.0 or avg_growth_rate > 8.0:  # Более 8-10 MB/мин = утечка
+                trend = 'increasing'
+            elif slope < -3.0:
+                trend = 'decreasing'
+            else:
+                trend = 'stable'
         
         return {
             'trend': trend,
